@@ -12,6 +12,7 @@ HINSTANCE hInst;                                // 当前实例
 WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 UINT g_uCountDown_s = 0;                        // 计时器剩余时间
+HWND g_hMainWnd;                                // 主窗口的句柄
 
 // 此代码模块中包含的函数的前向声明:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -33,6 +34,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_COUNTDOWN, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
+    RegisterAppendTimeWnd(hInstance);
 
     // 执行应用程序初始化:
     if (!InitInstance (hInstance, nCmdShow))
@@ -115,6 +117,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 #define IDT_TIMER_1SECOND 0xCCCCCCC1
 
+HWND GetMainWindowHandle() {
+    return g_hMainWnd;
+}
+
 ////30分钟计时结束通知函数
 //void CALLBACK Timerproc_30min(
 //    HWND unnamedParam1,
@@ -156,6 +162,10 @@ void SetTime(HWND hWnd, UINT second) {
 
 //加时
 void AppendTime(HWND hWnd, UINT second) {
+    //没有加时数值不操作
+    if (second == 0) 
+        return;
+    //拥有加时且并未开始计时则新建计时器
     if (g_uCountDown_s == 0) {
         NewTimer(hWnd, second);
         return;
@@ -193,6 +203,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+    case WM_CREATE:
+        g_hMainWnd = hWnd;
+        break;
     case WM_TIMER:
         switch (wParam)
         {
@@ -218,10 +231,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;
-            case IDM_APPEND:
-                //加时五分钟
-                AppendTime(hWnd, 5 * 60);
+            case IDM_APPEND: {
+                HWND hTempWnd = CreateWindowW(APPEND_WINDOW_CLASS, APPEND_WINDOW, WS_OVERLAPPEDWINDOW,
+                    CW_USEDEFAULT, CW_USEDEFAULT, 216, 120, nullptr, nullptr, hInst, nullptr);
+                ShowWindow(hTempWnd, SW_SHOW);
+                UpdateWindow(hTempWnd);
                 break;
+            }
             case IDM_NEW:
                 //开启一个定时器任务 时间30分钟
                 NewTimer(hWnd, 60 * 30);
