@@ -15,6 +15,8 @@
 #define IDM_NEW                         32771
 #define IDM_APPEND                      32772
 #define IDM_RESETTIMER                  32773
+#define IDM_PAUSE                       32774
+#define IDM_CONTINUE                    32775
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

@@ -101,8 +101,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 将实例句柄存储在全局变量中
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, CW_USEDEFAULT, 200, 100, nullptr, nullptr, hInstance, nullptr);
+   HWND hWnd = CreateWindowEx(WS_EX_TOPMOST, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+      CW_USEDEFAULT, CW_USEDEFAULT, 200, 150, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
    {
@@ -142,8 +142,8 @@ HWND GetMainWindowHandle() {
 void NewTimer(HWND hWnd, UINT second) {
     g_uCountDown_s = second;
     //g_uCountDown_s = 10;       //测试用
+    SetTimer(hWnd, IDT_TIMER_1SECOND, 1000, NULL);
     RedrawWindow(hWnd, NULL, NULL, RDW_INVALIDATE);
-    SetTimer(hWnd, IDT_TIMER_1SECOND, (1000), NULL);
 }
 
 //设置计时器时间
@@ -174,6 +174,16 @@ void AppendTime(HWND hWnd, UINT second) {
     RedrawWindow(hWnd, NULL, NULL, RDW_INVALIDATE);
 }
 
+//暂停计时
+void PauseTimer(HWND hWnd) {
+    KillTimer(hWnd, IDT_TIMER_1SECOND);
+}
+
+//继续计时
+void ContinueTimer(HWND hWnd) {
+    SetTimer(hWnd, IDT_TIMER_1SECOND, 1000, NULL);
+}
+
 void Draw(HWND hWnd, HDC hdc) {
     RECT rect;
     RECT clientRect;
@@ -201,10 +211,15 @@ void Draw(HWND hWnd, HDC hdc) {
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static HWND hEditLeaveWord;
     switch (message)
     {
     case WM_CREATE:
         g_hMainWnd = hWnd;
+        //创建一个EDIT控件
+        hEditLeaveWord = CreateWindowEx(0, TEXT("EDIT"), NULL, 
+            WS_CHILD | WS_BORDER | WS_VISIBLE | ES_AUTOHSCROLL,
+            0, 0, 200, 20, hWnd, (HMENU)1003, hInst, NULL);
         break;
     case WM_TIMER:
         switch (wParam)
@@ -232,6 +247,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DestroyWindow(hWnd);
                 break;
             case IDM_APPEND: {
+                //打开追加窗口
                 HWND hTempWnd = CreateWindowW(APPEND_WINDOW_CLASS, APPEND_WINDOW, WS_OVERLAPPEDWINDOW,
                     CW_USEDEFAULT, CW_USEDEFAULT, 216, 120, nullptr, nullptr, hInst, nullptr);
                 ShowWindow(hTempWnd, SW_SHOW);
@@ -245,9 +261,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case IDM_RESETTIMER:
                 SetTime(hWnd, 0);
                 break;
+            case IDM_PAUSE:
+                PauseTimer(hWnd);
+                break;
+            case IDM_CONTINUE:
+                ContinueTimer(hWnd);
+                break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
+        }
+        break;
+    case WM_MOUSEMOVE:
+        if (wParam == MK_LBUTTON)
+        {
+            //模拟移动窗口消息
+            PostMessage(hWnd, WM_SYSCOMMAND, SC_MOVE, 0);
+            return 0;
         }
         break;
     case WM_PAINT:
